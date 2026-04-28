@@ -89,6 +89,59 @@ describe('Search', () => {
     });
 });
 
+// Load a second server instance where MongoDB never connects
+// This covers the `else` (mongoConnected = false) branches in every route
+describe('MongoDB disconnected', () => {
+    let disconnectedApp;
+
+    beforeAll(async () => {
+        process.env.CATALOGUE_SERVER_PORT = '8081';
+        jest.resetModules();
+
+        jest.mock('@instana/collector', () => {
+            const mock = jest.fn();
+            mock.currentSpan = jest.fn(() => ({ annotate: jest.fn() }));
+            return mock;
+        });
+        jest.mock('mongodb', () => ({
+            MongoClient: { connect: jest.fn().mockRejectedValue(new Error('refused')) },
+            ObjectId: jest.fn()
+        }));
+
+        disconnectedApp = require('../server');
+        await new Promise(resolve => setTimeout(resolve, 100));
+    });
+
+    afterAll(() => {
+        delete process.env.CATALOGUE_SERVER_PORT;
+    });
+
+    test('GET /products returns 500', async () => {
+        const res = await request(disconnectedApp).get('/products');
+        expect(res.status).toBe(500);
+    });
+
+    test('GET /product/:sku returns 500', async () => {
+        const res = await request(disconnectedApp).get('/product/CAT-001');
+        expect(res.status).toBe(500);
+    });
+
+    test('GET /products/:cat returns 500', async () => {
+        const res = await request(disconnectedApp).get('/products/apparel');
+        expect(res.status).toBe(500);
+    });
+
+    test('GET /categories returns 500', async () => {
+        const res = await request(disconnectedApp).get('/categories');
+        expect(res.status).toBe(500);
+    });
+
+    test('GET /search/:text returns 500', async () => {
+        const res = await request(disconnectedApp).get('/search/robot');
+        expect(res.status).toBe(500);
+    });
+});
+
 describe('DB error handling', () => {
     test('GET /products returns 500 on db error', async () => {
         mockFindResult.toArray.mockRejectedValueOnce(new Error('db error'));
