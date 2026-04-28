@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { node { label 'roboshop' } }
 
     stages {
         stage('Feature Branch Pipeline') {
