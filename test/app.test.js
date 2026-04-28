@@ -88,3 +88,35 @@ describe('Search', () => {
         expect(Array.isArray(res.body)).toBe(true);
     });
 });
+
+describe('DB error handling', () => {
+    test('GET /products returns 500 on db error', async () => {
+        mockFindResult.toArray.mockRejectedValueOnce(new Error('db error'));
+        const res = await request(app).get('/products');
+        expect(res.status).toBe(500);
+    });
+
+    test('GET /product/:sku returns 500 on db error', async () => {
+        mockCollection.findOne.mockRejectedValueOnce(new Error('db error'));
+        const res = await request(app).get('/product/CAT-001');
+        expect(res.status).toBe(500);
+    });
+
+    test('GET /products/:cat returns 500 on db error', async () => {
+        mockFindResult.toArray.mockRejectedValueOnce(new Error('db error'));
+        const res = await request(app).get('/products/apparel');
+        expect(res.status).toBe(500);
+    });
+
+    test('GET /categories returns 500 on db error', async () => {
+        mockCollection.distinct.mockRejectedValueOnce(new Error('db error'));
+        const res = await request(app).get('/categories');
+        expect(res.status).toBe(500);
+    });
+
+    test('GET /search/:text returns 500 on db error', async () => {
+        mockFindResult.toArray.mockRejectedValueOnce(new Error('db error'));
+        const res = await request(app).get('/search/robot');
+        expect(res.status).toBe(500);
+    });
+});
